@@ -1,0 +1,135 @@
+## Tell git who you are
+
+git config —global user.name steviep42
+git config —global user.email ticopittard@gmail.com
+
+cd ~
+rm -rf MyProject
+rm -rf Cool_Software
+
+## Clone a remote repository
+
+git clone https://github.com/steviep42/Cool_software.git
+
+## Checkout the folder / repository. See the .git folder
+
+cd Cool_software
+
+git remote -v 
+
+ls -la 
+
+cd .git 
+
+ls 
+
+cd ..
+
+## If the owner of the repository updates it then you can pull in just the changes
+
+git pull https://github.com/steviep42/Cool_software.git
+
+## Let's create a repository
+
+cd ~
+
+git init MyProject
+
+cd MyProject
+
+ls -a
+
+## Let's create some files to manage with git
+
+vi Readme.md
+
+git status
+
+git add Readme.md
+
+git status
+
+vi Readme.md
+
+git diff
+
+git add Readme.md
+
+git commit # Provide an informative message
+
+git status
+
+git log 
+
+vi Script.pl
+
+## We can add other folders too - not just single files
+
+cp -r ~/Downloads/code_files 
+
+git add *   # adds all files
+
+git commit -a   # commits all files that have been added
+
+git log
+
+git log --pretty=oneline
+
+git log --pretty=format:'%h %cd %s (%an)'
+
+## How do you remove a file from a repository
+
+rm Script.pl
+
+git status 
+
+git checkout -- Script.pl
+
+## But this doesn't remove it from the actual repository. Other users
+## can still "see" it if they clone this repository.
+
+git rm Script.pl
+
+git commit -a 
+
+## Now it has been removed from both the folder and repository
+
+## What about branching ?
+
+git branch # lists current branches - should be only one at this point
+
+git branch exp
+
+git branch 
+
+git checkout exp   # Creates a copy of the Master branch into a new branch exp
+
+# Make changes in branch exp all you want
+
+vi Script3.pl
+
+git add *
+
+git commit -a
+
+git checkout master # Return to master branch
+
+ls    # Script3.pl isn't there but then it shouldn't be 
+
+git merge exp    # merges in changes from exp into the master branch
+
+git branch -d exp   # removes the exp branch
+
+## Create a github account at github.com
+
+# Create a repository called MyProject using the GitHub web interface
+
+# Let's push up the MyProject repository to GitHub
+
+git remote add origin https://github.com/steviep42/MyProject.git
+git push -u origin master
+
+# Now your changes are all on the remote GitHub system. Share it with the world
+
+
+
