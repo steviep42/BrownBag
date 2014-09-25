@@ -1,11 +1,13 @@
-## Tell git who you are
-
-git config —global user.name steviep42
-git config —global user.email ticopittard@gmail.com
+## Also check out http://tinyurl.com/o5yg2hp for my YouTube playlist on git
 
 cd ~
 rm -rf MyProject
 rm -rf Cool_Software
+
+## Tell git who you are
+
+git config --global user.name steviep42
+git config --global user.email ticopittard@gmail.com
 
 ## Clone a remote repository
 
