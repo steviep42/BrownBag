@@ -1,0 +1,33 @@
+---
+title: "Referencing other files"
+author: "Jenna Krall"
+date: "October 29, 2014"
+output: html_document
+---
+
+
+# Required packages
+
+Required packages from CRAN: 
+
+1. knitr
+
+
+# Read in the external code
+```{r rc}
+library(knitr)
+read_chunk("ex2_filereference.R")
+```
+
+
+
+
+# Can call code using chunk name
+
+Now we have a bunch of text, say for a manuscript or report.  And we don't want hundreds of lines of R code dividing up our text-- it makes it difficult to read and difficult to edit.  Instead, we can call external .R files where our code lives, but embed them here.
+
+
+```{r gendat, echo = T, tidy = T}
+```
+
+See?  it is much easier to read.  Oh and as an aside, we can also include LaTeX equation editing.  So, our linear model is $y_i = \beta_0 + \beta_1 x_i + \epsilon_i$ where $\epsilon\sim \text{N}(0, 1)$
