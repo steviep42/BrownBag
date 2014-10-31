@@ -1,0 +1,29 @@
+Author:Jenna Krall
+Date:October 30, 2014
+
+This is a readme file describing the Krall_repro_knitr folder, which includes
+examples of reproducible research and dynamic documents using knitr.
+
+1. slides folder
+
+Contains presentation and accompanying graphics.  To view as .Rpres (R code 
+plus markdown), open in your editor of choice, or in RStudio. All files labeled
+"Krall_repro_bb" are the slides.  You can view completed slides by opening the
+.html file in a browser.  
+
+2. ex1
+
+This example is a basic knitr example showing how I've incorporated knitr
+into my manuscript preparation.  The cache and files folders are updated
+by knitr.  Open the .html file in a browser to see the finished document or
+open the .Rmd file (in an editor or Rstudio) to view the R + markdown.
+
+3. ex2 
+
+This example shows how to cache other files using knitr.  Open both the .R and
+.Rmd files to view how the .html file is created.
+
+4. ex3
+
+This example gives some examples of how you can integrate knitr with other
+recent R tools to create interactive documents with maps and applications.
