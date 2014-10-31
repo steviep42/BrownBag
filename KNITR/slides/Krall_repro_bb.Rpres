@@ -6,7 +6,12 @@ date: October 31, 2014
 <img src="paranormal.jpg" alt="Drawing" style="width: 350px;"/>
 
 
+```{r set_knitr_chunk_options, echo = F}
+library(knitr)
+opts_chunk$set(echo=FALSE, message=FALSE, results = "asis", warning = F) 
 
+echo1 <- T
+```
 
 About me
 ========================================================
@@ -35,7 +40,7 @@ What is reproducible research?
 
 Which means:
 - Replicability vs. Reproducibility
-- ``reproducibility = tools + workflow''(Stodden, Leisch, and Peng)
+- reproducibility = tools + workflow (Stodden, Leisch, and Peng)
 - Literate statistical programming (Rossini via Knuth)
   - Programming language + documentation language
 - **Linking data, code, results, and interpretation**
@@ -48,21 +53,18 @@ Which means:
 
 Example 1: how did we make this plot?
 ========================================================
-![plot of chunk unnamed-chunk-1](Krall_repro_bb-figure/unnamed-chunk-1.png) 
+```{r, echo = echo1}
+data(cars)
+attach(cars)
+plot(speed, dist, ylab = "Stopping distance (ft)", xlab = "Speed (mph)")
+```
 
 
 Example 2: how did we compute those statistics?
 ========================================================
 What dataset are they from?  If I don't know R, how can I make this table?
-
-```
-     speed           dist    
- Min.   : 4.0   Min.   :  2  
- 1st Qu.:12.0   1st Qu.: 26  
- Median :15.0   Median : 36  
- Mean   :15.4   Mean   : 43  
- 3rd Qu.:19.0   3rd Qu.: 56  
- Max.   :25.0   Max.   :120  
+```{r, results="verbatim", echo = echo1}
+summary(cars)
 ```
 
 
@@ -71,8 +73,11 @@ What dataset are they from?  If I don't know R, how can I make this table?
 
 Example 3: Writing interpretations.
 ========================================================
-
-The R dataset *cars* has 2 variables which have the labels speed and dist.  The dataset has 50 observations.  The average speed reported was 15.4 miles per hour with a standard deviation (sd) of 5.2876.  The average stopping distance was 42.98 (sd = 25.7694) feet.  
+```{r, echo = echo1}
+library(dplyr)
+#cars <- filter(cars, dist < 100)
+```
+The R dataset *cars* has `r ncol(cars)` variables which have the labels `r colnames(cars)[1]` and `r colnames(cars)[2]`.  The dataset has `r nrow(cars)` observations.  The average speed reported was `r mean(cars$speed)` miles per hour with a standard deviation (sd) of `r sd(cars$speed)`.  The average stopping distance was `r mean(cars$dist)` (sd = `r sd(cars$dist)`) feet.  
 
 
 
