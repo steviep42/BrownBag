@@ -7,9 +7,8 @@ examples of reproducible research and dynamic documents using knitr.
 1. slides folder
 
 Contains presentation and accompanying graphics.  To view as .Rpres (R code 
-plus markdown), open in your editor of choice, or in RStudio. All files labeled
-"Krall_repro_bb" are the slides.  You can view completed slides by opening the
-.html file in a browser.  
+plus markdown), open in Rstudio.  You can use Rstudio to compile into a .html
+file, or open the existing .html file in your browser of choice.  
 
 2. ex1
 
