@@ -1,0 +1,108 @@
+Reproducible Research Using R
+========================================================
+author: Jenna Krall
+date: October 31, 2014
+***
+<img src="paranormal.jpg" alt="Drawing" style="width: 350px;"/>
+
+
+```{r set_knitr_chunk_options, echo = F}
+library(knitr)
+opts_chunk$set(echo=FALSE, message=FALSE, results = "asis", warning = F) 
+
+echo1 <- T
+```
+
+About me
+========================================================
+<br>
+- PhD in Biostatistics from Johns Hopkins
+- Hopkins Biostat student computing club
+  - Emphasis on new tools for using R
+- ``Implementing Reproducible Research'' (Stodden, Leisch, and Peng)
+
+
+Why am I interested in reproducible research?
+========================================================
+<br>
+<img src="ugly.png" alt="Drawing" style="width: 600px;"/>
+
+
+Why am I interested in reproducible research?
+========================================================
+<br>
+![width](pretty.png)
+
+
+What is reproducible research?
+========================================================
+``...the calculation of quantitative scientific results by independent scientists using the original datasets and methods''
+
+Which means:
+- Replicability vs. Reproducibility
+- reproducibility = tools + workflow (Stodden, Leisch, and Peng)
+- Literate statistical programming (Rossini via Knuth)
+  - Programming language + documentation language
+- **Linking data, code, results, and interpretation**
+- Open science?
+
+
+
+
+
+
+Example 1: how did we make this plot?
+========================================================
+```{r, echo = echo1}
+data(cars)
+attach(cars)
+plot(speed, dist, ylab = "Stopping distance (ft)", xlab = "Speed (mph)")
+```
+
+
+Example 2: how did we compute those statistics?
+========================================================
+What dataset are they from?  If I don't know R, how can I make this table?
+```{r, results="verbatim", echo = echo1}
+summary(cars)
+```
+
+
+
+
+
+Example 3: Writing interpretations.
+========================================================
+```{r, echo = echo1}
+library(dplyr)
+#cars <- filter(cars, dist < 100)
+```
+The R dataset *cars* has `r ncol(cars)` variables which have the labels `r colnames(cars)[1]` and `r colnames(cars)[2]`.  The dataset has `r nrow(cars)` observations.  The average speed reported was `r mean(cars$speed)` miles per hour with a standard deviation (sd) of `r sd(cars$speed)`.  The average stopping distance was `r mean(cars$dist)` (sd = `r sd(cars$dist)`) feet.  
+
+
+
+
+Introduction to knitr
+=======================================================
+<br>
+<span style="color:blue">knitr</span>
+- was developed by Yihui Xie at Iowa State (now at RStudio)
+- has great integration with RStudio
+- can be easily incorporated into your existing workflow
+- is flexible and can be used with other programming languages (e.g. python) and documentation languages (e.g. html, LaTeX)
+<br>
+
+<span style="color:blue">We will focus on using knitr to integrate R and markdown</span>
+
+
+
+
+knitr using R + markdown
+=======================================================
+<br>
+- knitr = parser + evaluator + renderer
+- Text (in markdown) separated by code chunks (written in R)
+- Can also incorporate in-line R
+- Flexible output (pdf, html, word)
+
+

@@ -1,0 +1,311 @@
+---
+title: "Source apportionment in New York City using APCA"
+author: "Jenna Krall"
+date: "October 21, 2014"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+  word_document: default
+---
+
+
+
+# Required packages
+
+Required packages from CRAN: 
+
+- xtable
+- devtools
+- ncdf4
+- reshape2
+- ggplot2
+- scales
+- knitr
+
+
+Required packages from github: kralljr/handles
+
+- <FONT FACE="courier">library(devtools)</FONT>
+- <FONT FACE="courier">devtools::install_github("kralljr/handles")</FONT>
+
+
+# Objectives
+
+- Workflow
+- Naming chunks
+- Plotting
+- Caching results
+- Global options as R objects
+
+```{r set_knitr_chunk_options, echo = F}
+library(knitr)
+echo1 = F
+opts_chunk$set(echo=F, message=FALSE,  warning = F) 
+```
+
+```{r load, echo = echo1}
+#load necessary packages
+library(xtable)
+library(devtools)
+library(ncdf4)
+library(reshape2)
+library(ggplot2)
+library(handles)
+library(scales)
+
+
+#get data from handles package
+data(nycdat)
+data(nycmdl)
+
+#clean data by fixing totals
+pm <- nycdat$PM25
+whPM <- which(colnames(nycdat) == "PM25")
+nycdat <- nycdat[, -whPM]
+whPM <- which(colnames(nycmdl) == "PM25")
+nycmdl <- nycmdl[, -whPM]
+
+#specify number of sources and names of sources
+ns <- 8
+sources <- c("soil", "secsulf", "traffic", "resoil")
+```
+
+
+```{r unc, echo = echo1}
+#apply APCA to uncensored data
+apcaUN <- apca(nycdat, tots = pm, nsources = ns)
+
+#reorder results
+ords <- c(2, 3, 8, 1)
+apcaUN <- apcaUN$conc[, ords]
+```
+
+
+
+
+```{r halfmdl, echo = echo1}
+#apply APCA to censored data: 1/2 MDL method
+apcaSUB <- apca(nycdat, tots = pm, nsources = ns, adjust = "substitute", 
+    mdl = nycmdl)
+
+#reorder results
+ords <- c(5, 3, 2, 1)
+apcaSUB <- apcaSUB$conc[, ords]
+```
+
+
+
+
+```{r exclude, echo = echo1}
+#apply APCA to censored data: exclude method
+apcaEX <- apca(nycdat, tots = pm, nsources = ns, adjust = "exclude", 
+    mdl = nycmdl)
+
+#reorder results
+ords <- c(4, 3, 2, 1)
+apcaEX <- apcaEX$conc[, ords]
+```
+
+
+
+
+```{r model, cache = T, echo = echo1}
+#load model-based imputation results
+lhood <- nc_open("nycout.hdf5")
+moddat <- ncvar_get(lhood, "data")
+mean <- ncvar_get(lhood, "mean")
+covar <- ncvar_get(lhood, "covariance")
+nc_close(lhood)
+
+
+#specify dimensions
+dates <- nycdat[, 1]
+N <- dim(moddat)[3]
+
+#constituents associated with each source
+soilN <- c("aluminum","calcium", "iron", "silicon",  "titanium")
+ssN <- c("ammonium_ion", "sulfur")
+trN <- c(  "OC", "elemental_carbon", "potassium")
+resN <- c("nickel", "vanadium", "nitrate", "chlorine", "lead", "zinc")
+vars <- c(soilN, ssN, trN, resN)
+
+#function to reorder model-based results
+# vmax is varimax-rotated PCs
+ordfun <- function(vmax) {
+    #take absolute value
+    vmax <- abs(vmax)
+    
+    #find which source corresponds to which column
+    soil <- which.max(colSums(vmax[soilN, ]))
+    ss <- which.max(colSums(vmax[ssN, ]))
+    traf <- which.max(colSums(vmax[trN, ]))
+    resoil <- which.max(colSums(vmax[resN, ]))
+    vec <- c(soil, ss, traf, resoil)
+    
+    #if there are ties, reselect match
+    while(length(unique(vec)) != 4 & !(is.na(vec[1]))) {
+        if(resoil == soil) {
+            
+            soil <- order(colSums(vmax[soilN, ]), 
+                decreasing = T)[2]
+            vec <- c(soil, ss, traf, resoil)
+        }else{
+            vec <- NA
+        }
+    }
+    vec
+}
+
+
+#for those sources that did not match with function
+ords1 <- list()
+keeps <- c(48, 55, 61, 85, 86, 94)
+ords1[[48]] <- c(1, 2, 4, 5)
+ords1[[55]] <- c(1, 6, 4, 7)
+ords1[[61]] <- c(1, 3, 2, 5)
+ords1[[85]] <- c(1, 3, 4, 6)
+ords1[[86]] <- c(2, 6, 3, 1)
+ords1[[94]] <- c(1, 3, 7, 2)
+
+#apply APCA
+apcaMODEL <- array(dim = c(nrow(apcaUN), ncol(apcaUN), N))
+for(i in 1 : N) {
+    #get data
+    dat <- data.frame(dates, t(moddat[,, i]))
+    colnames(dat) <- colnames(nycdat)
+    
+    #apply APCA
+    temp <- apca(dat, tots = pm, nsources = ns)
+    #save vmax and assign order
+    load <- temp$vmax$load[1:30, ]
+    ords <- ordfun(load)
+    
+    #if doesn't match
+    if(is.na(ords[1]) & !(i %in% keeps)) {
+        print(i)
+        temp1 <- temp$vmax[[1]][1 : 30, ]
+        temp1 <- round(temp1[vars, ], 1)
+        temp1[which(abs(temp1) < 0.3, arr.ind = T)] <- NA
+        print(temp1)
+        browser()
+    #else assign using above
+    }else if(i %in% keeps) {
+        ords <- ords1[[i]]
+    }
+    
+    #save source concentrations
+    apcaMODEL[,, i] <- temp$conc[, ords]
+}
+#get average source concentrations
+apcaMODEL1 <- apply(apcaMODEL, c(1, 2), mean, na.rm = T, trim = 0.1)
+
+apcaMODEL[, 1, ] <- 1
+apcaMODEL1[, 1] <- rep(1, nrow(apcaMODEL1))
+```
+
+
+
+# Table 6
+```{r tab, results = "asis", cache = T, dependson=c('model'), echo = echo1}
+#create array of data
+ts <- array(dim = c(nrow(apcaUN), ncol(apcaUN), 4))
+ts[,, 1] <- apcaUN
+ts[,, 2] <- apcaMODEL1
+ts[,, 3] <- apcaSUB
+ts[,, 4] <- apcaEX
+dimnames(ts) <- list(nycdat[, 1], sources, c("Reported", "Model", "1/2 MDL", "Exclude"))
+
+#find means and standard deviations
+means <- round(t(apply(ts, c(2, 3), mean)), 2)
+sds <- round(t(apply(ts, c(2, 3), sd)), 2)
+tabs <- matrix(paste0(means, " (", sds, ")"), nrow = 4, byrow = F)
+rownames(tabs) <- dimnames(ts)[[3]]
+colnames(tabs) <- c("Soil", "Sec. Sulfate", "Traffic", "Res. oil/Incineration")
+
+kable(tabs)
+
+```
+
+LaTeX output for tex file
+```{r latextab, comment = "", cache = T, dependson=c('model'), echo = echo1}
+
+xtable(tabs)
+```
+
+
+
+
+# Figure 2
+```{r plot, fig.height = 8, cache = T,  dependson=c('model'), echo = echo1}
+#select days to plot
+T1 <- 48
+ts <- ts[1 : T1,, ]
+
+#long form data
+mdat <- melt(ts, varnames = c("Date", "Source", "Type"), value.name = "Conc")
+mdat[, 1] <- as.Date(mdat[, 1], origin = "1970-01-01")
+mdat$Source <- factor(mdat$Source, labels = c("Soil", "Sec. Sulfate", "Traffic",
+    "Residual Oil"))
+mdat$Type <- factor(mdat$Type, levels = c("Model", "1/2 MDL", "Exclude", "Reported"))
+
+#find 25th and 75th percentiles for model-based
+model25 <- apply(apcaMODEL, c(1, 2), quantile, probs = 0.25, na.rm = T)
+model75 <- apply(apcaMODEL, c(1, 2), quantile, probs = 0.75, na.rm = T)
+colnames(model25) <- sources
+colnames(model75) <- sources
+rownames(model25) <- nycdat[, 1]
+rownames(model75) <- nycdat[, 1]
+model25 <- model25[1 : 48, ]
+model75 <- model75[1 : 48, ]
+m25 <- melt(model25, varnames = c("Date", "Source"), value.name = "Bottom")
+m75 <- melt(model75, varnames = c("Date", "Source"), value.name = "Top")
+model1 <- merge(m25, m75, all = T)
+model1$Date <- as.Date(model1$Date, origin = "1970-01-01")
+Type <- rep("Model", nrow(model1))
+model1 <- data.frame(model1, Type)
+model1$Source <- factor(model1$Source, labels = c("Soil", "Sec. Sulfate", "Traffic",
+    "Residual Oil"))
+
+
+#specify plotting parameters
+pd <- position_dodge(.4)
+size1 <- 18
+sizeline <- 0.8
+
+#plot ribbon for model based
+p <- ggplot() + scale_colour_manual(name="",
+    breaks=c("Model", "1/2 MDL", "Exclude", "Reported"),
+    values = c("#CC6666", "grey20", "grey40", "grey70"))  
+p <- p + geom_ribbon(data = model1, aes(x = Date, 
+    ymin = Bottom, ymax = Top, group = Type), 
+    fill = "red", alpha = 0.2)
+
+#add lines/points for other methods 
+p <- p +
+	geom_line(data = mdat, aes(x = Date, y = Conc, colour = Type, 
+		group = Type, linetype = Type))  +
+	geom_point(data = mdat, aes(x = Date, y = Conc, colour = Type, 
+		group = Type, shape = Type)) +
+	scale_shape_manual(values=c(NA, 1,16, 3), name = "", 
+		 breaks=c("Model", "1/2 MDL", "Exclude", "Reported")) + 
+	scale_linetype_manual(values=c(1,2, 3, 1), name="", breaks=c("Model", 
+		"1/2 MDL", "Exclude", "Reported"))
+
+#format output
+p <- p +  theme(axis.text.y=element_text(size=size1)) +
+    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5, size = size1)) +
+    scale_x_date(labels = date_format("%m-%Y")) +
+    theme(panel.background = element_blank()) +
+    ylab(expression("Concentration (" * mu * 
+		 "g/m"^"3"*")" )) + xlab("") +
+    theme(legend.text=element_text(size=size1))  
+
+#plot sources separately 
+p <- p + facet_wrap(~Source, scales = "free_y", ncol = 1) + 
+	theme(strip.text.x = element_text(size = size1), 
+          axis.title=element_text(size=size1))
+p
+
+```
+
