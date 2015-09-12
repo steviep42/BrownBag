@@ -1,0 +1,91 @@
+---
+title: "Intro to data.table"
+author: "Steve Pittard"
+date: "September 12, 2015"
+output: pdf_document
+---
+
+# Motivations
+
+Data frames are very powerful structures in R that let you describe observations and the attributes
+of those observations in a matrix like structure. You don't use R for very long without encountering data frames. data.frames are organized into rows and columns. We use ``bracket notation'' to address specific rows and columns
+
+```{r }
+DF <- data.frame(x=c("B","A","B","A","B"),y=c(7,2,1,5,9))
+
+str(DF)
+
+DF 
+
+DF[DF$y > 2, ]   # Get all rows where y > 2
+
+DF[DF$y > 2, 'x']   # Same as above but get just the x column
+
+DF[DF$y > 2 & DF$x == "B",]  # Get all rows where y > 2 and x = "b"
+
+DF[DF$y > 2 & DF$x == "B",]$y   # Same as above but returns only the vector y
+
+mean(DF[DF$y > 2 & DF$x == "B",]$y)  # get the mean of y 
+
+# DF[,sum(y)]   Won't work  with a data frame
+
+sum(DF$y)
+
+```
+
+Most people don't realize that the bracket notation is a function that is builtin to R. Just because it is a symbol "[" instead of say a word like "subset" they doesn't mean it cannot be a function.
+
+```{r}
+`[`
+
+`+`
+```
+
+
+# data.table
+The data.table package let's you create a data frame ``substitute'' that can behave almost exactly like a data frame when it is ncessary. That is it will repsond to functions such as **nrow**. However, there are many interesting differences between a data table and a data frame structures that we will soon see. 
+```{r }
+library(data.table)
+
+DT <- data.table(DF)
+
+class(DT)
+
+DT[2:3,y]   # Get rows 2 and 3 and only column y (not quote needed around y)
+
+DT[!2:3]    # Get all rows but rows 2 and 3
+
+# DF[,sum(y)] # Let's get the sum of y column  Won't work  with a data frame
+
+DT[,sum(y)]  # This works inside the bracket notation
+
+```
+
+# Summary and aggregation
+
+We frequently want to summarize by some numeric value in terms of factors.  For example find the average value of y for each level of factor x. R has ways to do this. 
+
+```{r }
+tapply(DF$y, DF$x, mean)
+
+# OR
+
+aggregate(y~., data=DF, mean)
+
+aggregate(y~.,data=DF, function(x) c(mean=round(mean(x),2), sd=round(sd(x),1)) )
+```
+
+But wouldn't it be nice to have this capability as part of the data table structure itself ? data.table allows us to do just that. Some advantages of **data.table** are:
+
+* Extends the data frame bracket notation to do more
+* Works well with huge data files
+* Works with non data.table functions - that is it can act like a regular data frame when necessary
+
+
+```{r }
+DT <- data.table(DF)   # We just created a data.table 
+
+class(DT)     # It has attributes of both a data frame and a data table
+
+DT[,mean(y),by=x]  # replaces our aggregate function
+```
