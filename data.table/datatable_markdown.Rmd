@@ -7,8 +7,7 @@ output: pdf_document
 
 # Motivations
 
-Data frames are very powerful structures in R that let you describe observations and the attributes
-of those observations in a matrix like structure. You don't use R for very long without encountering data frames. data.frames are organized into rows and columns. We use ``bracket notation'' to address specific rows and columns
+Data frames are very powerful structures in R that let you describe observations and the attributes of those observations in a matrix like structure. You don't use R for very long without encountering data frames. data.frames are organized into rows and columns. We use ``bracket notation'' to address specific rows and columns
 
 ```{r }
 DF <- data.frame(x=c("B","A","B","A","B"),y=c(7,2,1,5,9))
@@ -43,7 +42,14 @@ Most people don't realize that the bracket notation is a function that is builti
 
 
 # data.table
-The data.table package let's you create a data frame ``substitute'' that can behave almost exactly like a data frame when it is ncessary. That is it will repsond to functions such as **nrow**. However, there are many interesting differences between a data table and a data frame structures that we will soon see. 
+The data.table package let's you create a data frame ``substitute'' that can behave almost exactly like a data frame when it is necssary. That is it will repsond to functions such as **nrow**. However, there are many interesting differences between a data table and a data frame structures that we will soon see. 
+
+The general form os the data.table is as follows. There are no methods or replacement functions to learn. That is, for example, data.table does not attempt to replace the standard functions in available in R like mean, sd, quantile, etc.
+```{r eval=FALSE}
+DT[where,select|update,group by][having][order by]
+```
+
+
 ```{r }
 library(data.table)
 
@@ -89,3 +95,172 @@ class(DT)     # It has attributes of both a data frame and a data table
 
 DT[,mean(y),by=x]  # replaces our aggregate function
 ```
+
+
+When considering how to best work a data table keep the following in mind. If we have a data table called DT we think of the associated bracket notation as being DT[i,j,by]. With DT we subset rows using ''i'' then calculate ''j'' as grouped by ''k''. One is not obligated to take full advantage of the data table construct - we could use it simply to read in really large files which is something at which it excels. But let's explore the expanded capabilities of data table's bracket notation a little more.
+
+```{r }
+DF[with(DF,order(-y)),]    # Sort by descending y using a data frame
+
+DT[order(-y)]              # Sort using a data table  simple
+
+DT[,list(total = sum(y), mean=mean(y))]    # Get the sum and of y for all rows 
+
+DT[,list(total = sum(y), mean=mean(y)),by=x]  # Do it again but group by factor x
+```
+
+Note that if we have want to name the results of the function in the "j" position we need to create a list to contain it. You might also see the period notation in some examples of data.table which accomplishes the same thing.
+
+```{r }
+DT[,sum(y),by=x]
+
+# DT[,total=sum(y),by=x]   # Doesn't work
+
+DT[, list(total=sum(y)),by=x]  
+
+DT[, list(total=sum(y)),by=x]   # same as above but takes some getting used to 
+
+DT[, list(total=sum(y), avg=mean(y)), by=x]
+
+# The old way to do this - so to speak is to use the aggregate command
+
+aggregate(y ~ x, data=DT, function(v) c(total=sum(v),avg=mean(v)))
+```
+
+Let's do some some subsetting and some more aggregation
+
+```{r }
+DT[, .N]    # the .N variable is a special variable in a data table
+
+DT[, .N, by=x]  # selects the number of rows  for each level of factor B
+
+DT[y > 2, .N, by = x]  # selects the number of rows where y > 2. We then group by x
+
+```
+
+We can update existing columns or add new ones 
+
+
+```{r }
+DT[,y := y+1]         # Add 1 to every value of y
+
+DT[,y := y-1]         # Remove 1 from 
+
+DT[, avg := mean(y)]  # Add a column name avg 
+
+DT[,avg := NULL]      # Remove the avg column
+
+DT[,avg :=mean(y), by=x] # Add the group averages to the respective rows
+
+DT[,avg := NULL]
+```
+
+# Larger files
+
+Let's examine a larger data set. If you cloned the repository that contains this document you also have a file called "hflights.csv". If you haven't cloned or downloaded the respository then the address is https://github.com/steviep42/BrownBag Check in the data.table folder.
+
+This dataset contains all flights departing from Houston airports IAH (George Bush Intercontinental) and HOU (Houston Hobby). The data as part of the hflights package but to do some comparisons we'll read the data in from the .csv file.
+
+Let's time how long it takes to read in this file using the standard **read.csv** function and then do the same thing using the **fread** function that comes as part of the data.table package.
+
+```{r}
+system.time(dff <- read.csv("hflights.csv",sep=",",header=TRUE))
+
+system.time(dft <- fread("hflights.csv",sep=",",header=TRUE))
+```
+
+We see that it takes much longer to read in the data frame version than the data table version. The larger the input the file the larger the difference between these two operations.We'll see an exmple of that later. Let's do some comparative aggregatio to see if using data.table is any faster than using say the aggregate function
+
+```{r}
+str(dft)
+```
+
+Let's compute the average AirTime as grouped by DayOfWeek and then by Origin. 
+
+```{r}
+system.time(agg1 <- aggregate(AirTime~DayOfWeek+Origin,data=dff,mean))
+
+agg1
+
+system.time(agg2 <- dft[, list(avg=mean(AirTime,na.rm=T)), by=list(DayOfWeek,Origin)] )
+
+agg2
+```
+
+The data.table approach will be faster. Also it's sometimes very obvious what the factors or categories are in a data frame by using the **str** function although this isn't alawys the case. We can then use an approach like the following to see how many unqiue values each column takes on. Those taking on only a few discrete values might be good candidates for being a factor.
+
+```{r}
+sapply(dft,function(x) {length(unique(x))})
+
+# If we wanted to use the data.table approach
+
+dft[,lapply(.SD,function(x) {length(unique(x))})]
+
+```
+
+Note that in the second example we are using a special variable made available by data.table called **.SD** which basically stands for "subsetted data". In this case we aren't using the **by** operator so the "subsetted data" in this case is the entire data table. We then use the lapply command to apply our anonymous function over each column. 
+
+Let's look at the distribution of Arrival Delays from both airports. Let's make some histograms. We'll use ggplot and the chaining function from the dplyr package.
+```{r}
+suppressMessages(library(dplyr))
+library(ggplot2)
+
+dft[,list(quantile=quantile(ArrDelay,na.rm=T)),by=Origin]
+dft %>% ggplot(aes(x=ArrDelay)) + geom_bar(binwidth=20) +xlim(-100,200) + facet_grid(Origin ~.)
+
+dft[,.N,by=Origin]
+
+dft[,.N,by=Origin][order(-N)]
+
+# how many flights are coming out of each airport each month ?
+
+dft[,table(Origin,Month)]
+
+# Let's create a stacked bar chart with this information
+
+as.data.frame(dft[,table(Origin,Month)]) %>% 
+  ggplot(aes(x=Month,y=Freq,fill=Origin)) + geom_bar(stat="identity") + 
+  ggtitle("Flghts out of HOU and IAH")
+#
+
+
+```
+
+# Processing an Even Larger File
+
+I have a data set that contains a 150GB sample of the data. It includes a full 3 months of hourly page traffic statistics from Wikipedia (1/1/2011 - 3/31/2011), The breakdown is as follows:
+
+* Contains hourly wikipedia article traffic stats covering a 3 mont period
+* Each of the 2,161 log files is named with the date and time of collection
+* Each line has 4 fields: projectcode, pagename, pageviews, and downloads in bytes
+
+The data is available from Amazon Public Data sets at 
+
+<https://aws.amazon.com/datasets/wikipedia=page-traffic-statistic-v3/>
+
+I took some of these files and combined them into a single file of size 1.4GB and 31,164,567 records with 4 columns. This is a small fraction of the total data. I ran this test on an Amazon Web Services instance that has 4GB of memory and 2 cores. Many laptops have at least this and usually more.
+
+```{r eval=FALSE}
+$ ls -lh combined_wiki.txt
+-rw-r--r-- 1 ubuntu root 1.4G Sep 3 19:27 combined_wiki.txt
+
+$ wc -l combined_wiki.txt
+31164567 combined_wiki.txt
+
+```
+
+
+# Interesting things
+
+The following two are equivalent and take about the same time to execute
+
+```{r}
+system.time(dft[,mean(ArrDelay,na.rm=T),by=Origin])
+
+#
+
+system.time(dft[,lapply(.SD,mean,na.rm=T),by=Origin,.SDcols=c(12)])
+
+
+```
+
