@@ -6,6 +6,14 @@ rm -rf Cool_Software
 
 ## Tell git who you are
 
+# This shows you what variables git knows about
+
+git config --list 
+
+# These commands let you tell git about yourself.
+# Use your own id and email here because later you will use this 
+# info to create remote repositoroies on BitBucket or Github.com
+
 git config --global user.name steviep42
 git config --global user.email ticopittard@gmail.com
 
