@@ -89,16 +89,18 @@ git log --pretty=format:'%h %cd %s (%an)'
 
 ## How do you remove a file from a repository
 
-rm Script.pl
+vi greatscript.R
+
+rm greatscript.R
 
 git status 
 
-git checkout -- Script.pl
+git reset HEAD greatscript.R
 
 ## But this doesn't remove it from the actual repository. Other users
 ## can still "see" it if they clone this repository.
 
-git rm Script.pl
+git rm greatscript.R
 
 git commit -a 
 
