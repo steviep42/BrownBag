@@ -2,7 +2,7 @@
 
 cd ~
 rm -rf MyProject
-rm -rf Cool_Software
+rm -rf Cool_software
 
 ## Tell git who you are
 
@@ -75,7 +75,7 @@ vi Script.pl
 
 ## We can add other folders too - not just single files
 
-cp -r ~/Downloads/code_files 
+cp -r ~/Downloads/code_files .
 
 git add *   # adds all files
 
